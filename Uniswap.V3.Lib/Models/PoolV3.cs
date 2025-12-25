@@ -1,10 +1,11 @@
 ﻿using Uniswap.V3.Lib.Enums;
+using Uniswap.V3.Lib.Extensions;
 
 namespace Uniswap.V3.Lib.Models;
 
-public record struct Pool
+public record struct PoolV3
 {
-    public Pool(Token[] tokens, int feeTier, int tickSpacing)
+    public PoolV3(Token[] tokens, int feeTier, int tickSpacing)
     {
         Tokens = tokens;
         FeeTier = feeTier;
@@ -16,7 +17,10 @@ public record struct Pool
         FeeGrowthGlobal = [0, 0];
         ProtocolFees = [0, 0]; 
         ActiveLiquidity = 0;
+        _initialized = false;
     }
+
+    private bool _initialized; 
     
     //Identity / config
     public Token[] Tokens { get; init; }
@@ -35,4 +39,18 @@ public record struct Pool
     //Global Fees
     public decimal[] FeeGrowthGlobal { get; set; }
     public decimal[] ProtocolFees { get; set; }
+
+    public void Initialize(decimal initialPrice)
+    {
+        if (_initialized)
+            throw new ArgumentException("Already initialized.");
+        
+        if (initialPrice <= 0)
+            throw new ArgumentOutOfRangeException("Price non-positive...");
+
+        CurrentTick = new Tick(initialPrice.PriceToTick());
+        SqrtPrice = initialPrice.ToSqrtPrice();
+        
+        _initialized = true;
+    }
 }
