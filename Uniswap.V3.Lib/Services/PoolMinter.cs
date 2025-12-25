@@ -32,9 +32,9 @@ public class PoolMinter
             return MintToken0Only(pool, request, sqrtPriceLower, sqrtPriceUpper, tickMin, tickMax);
 
         if (sqrtPriceUpper <= pool.SqrtPrice)
-            return MintToken1Only(pool, request);
+            return MintToken1Only(pool, request, sqrtPriceLower, sqrtPriceUpper, tickMin, tickMax);
 
-        return MintBothTokens(pool, request); 
+        return MintBothTokens(pool, request, sqrtPriceLower, sqrtPriceUpper, tickMin, tickMax); 
     }
 
     private MintResponse MintToken0Only(PoolV3 pool, MintRequest request, 
@@ -76,7 +76,44 @@ public class PoolMinter
             [0, request.TokenAmounts[1].Value]);
     }
 
-    private MintResponse MintBothTokens(PoolV3 pool, MintRequest request)
+    private MintResponse MintBothTokens(PoolV3 pool, MintRequest request, 
+        decimal sqrtPriceLower, decimal sqrtPriceUpper, int tickMin, int tickMax)
+    {
+        if (request.TokenAmounts[0] is null)
+        {
+            var liquidity = request.TokenAmounts[1].Value / (sqrtPriceUpper - sqrtPriceLower);
+
+            var token0Amount = request.TokenAmounts[1].Value / sqrtPriceLower * sqrtPriceUpper;
+
+            return MintBothTokens(pool, token0Amount, request.TokenAmounts[1].Value,
+                sqrtPriceLower, sqrtPriceUpper, tickMin, tickMax);
+        }
+
+        if (request.TokenAmounts[1] is null)
+        {
+            var liquidity = request.TokenAmounts[0].Value * sqrtPriceLower * sqrtPriceUpper / (sqrtPriceUpper - sqrtPriceLower);
+
+            var token1Amount = request.TokenAmounts[0].Value * sqrtPriceLower * sqrtPriceUpper;
+
+            return MintBothTokens(pool, request.TokenAmounts[0].Value, token1Amount,
+                sqrtPriceLower, sqrtPriceUpper, tickMin, tickMax);
+        }
+
+        var liquidity0 = request.TokenAmounts[0].Value * sqrtPriceLower * sqrtPriceUpper / (sqrtPriceUpper - sqrtPriceLower);
+        var liquidity1 = request.TokenAmounts[1].Value / (sqrtPriceUpper - sqrtPriceLower);
+
+        if(liquidity0 <= liquidity1)
+            return MintBothTokens(pool, request.TokenAmounts[0].Value, 
+                request.TokenAmounts[0].Value * sqrtPriceLower * sqrtPriceUpper,
+                sqrtPriceLower, sqrtPriceUpper, tickMin, tickMax);
+
+        return MintBothTokens(pool, 
+            request.TokenAmounts[1].Value / (sqrtPriceLower * sqrtPriceUpper), request.TokenAmounts[1].Value,
+                sqrtPriceLower, sqrtPriceUpper, tickMin, tickMax);
+    }
+
+    private MintResponse MintBothTokens(PoolV3 pool, decimal token0Amount, decimal token1Amount,
+        decimal sqrtPriceLower, decimal sqrtPriceUpper, int tickMin, int tickMax)
     {
         throw new NotImplementedException();
     }
