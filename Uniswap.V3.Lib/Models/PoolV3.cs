@@ -33,8 +33,8 @@ public record struct PoolV3
     public decimal ActiveLiquidity { get; set; }
 
     //Ownership
-    public Dictionary<Tick, TickState> TickStates { get; set; }
-    public HashSet<Position> Positions { get; set; } 
+    private Dictionary<Tick, TickState> TickStates { get; set; }
+    private HashSet<Position> Positions { get; set; } 
 
     //Global Fees
     public decimal[] FeeGrowthGlobal { get; set; }
@@ -52,5 +52,31 @@ public record struct PoolV3
         SqrtPrice = initialPrice.ToSqrtPrice();
         
         _initialized = true;
+    }
+
+    public bool Initialized => _initialized;
+
+    public void AddPosition(Position position)
+    {
+        if (!Positions.Add(position))
+            throw new InvalidOperationException("Position could not be added."); 
+    }
+
+    public void AddTick(Tick tick, TickState state = TickState.Initialized)
+    {
+        if (TickStates.TryGetValue(tick, out var currentTickState))
+        {
+            if (currentTickState == TickState.DeInitialized)
+            {
+                TickStates[tick] = state;
+            }
+            else
+            {
+                //do nothing??? 
+            }
+            return; 
+        }
+        
+        TickStates[tick] = state;
     }
 }

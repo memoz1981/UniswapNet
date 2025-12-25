@@ -6,7 +6,7 @@ public record struct LP
     public int Id { get; init; }
     public string Name { get; init; }
 
-    public List<Position> Positions { get; private set; }
+    public List<AcceptedMintResponse> Positions { get; private set; }
 
     public LP(string name)
     {
@@ -15,8 +15,25 @@ public record struct LP
         name = Name;
     }
 
-    public void AddPosition(Position position)
+    public void Mint(PoolV3 pool, MintRequest mintRequest, out bool success, out string errorMessage)
     {
-        Positions.Add(position);
+        var response = pool.Mint(mintRequest);
+        success = true;
+        errorMessage = null;
+
+        if (!response.IsSuccess)
+        {
+            success = false;
+
+            if(response is not RejectedMintResponse rejectedMintResponse)
+                throw new InvalidOperationException("Response mismatch.");
+
+            errorMessage = rejectedMintResponse.ErrorMessage;
+        }
+
+        if (response is not AcceptedMintResponse acceptedResponse)
+            throw new InvalidOperationException("Response mismatch."); 
+
+        Positions.Add(acceptedResponse);
     }
 }
