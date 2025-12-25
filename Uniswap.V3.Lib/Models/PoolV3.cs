@@ -28,17 +28,17 @@ public record struct PoolV3
     public int TickSpacing { get; init; }
 
     //Current state
-    public decimal SqrtPrice { get; set; }
-    public Tick CurrentTick { get; set; }
-    public decimal ActiveLiquidity { get; set; }
+    public decimal SqrtPrice { get; private set; }
+    public Tick CurrentTick { get; private set; }
+    public decimal ActiveLiquidity { get; private set; }
 
     //Ownership
     private Dictionary<Tick, TickState> TickStates { get; set; }
     private HashSet<Position> Positions { get; set; } 
 
     //Global Fees
-    public decimal[] FeeGrowthGlobal { get; set; }
-    public decimal[] ProtocolFees { get; set; }
+    public decimal[] FeeGrowthGlobal { get; private set; }
+    public decimal[] ProtocolFees { get; private set; }
 
     public void Initialize(decimal initialPrice)
     {

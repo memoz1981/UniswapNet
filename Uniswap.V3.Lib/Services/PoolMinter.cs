@@ -79,42 +79,27 @@ public class PoolMinter
     private MintResponse MintBothTokens(PoolV3 pool, MintRequest request, 
         decimal sqrtPriceLower, decimal sqrtPriceUpper, int tickMin, int tickMax)
     {
-        if (request.TokenAmounts[0] is null)
-        {
-            var liquidity = request.TokenAmounts[1].Value / (sqrtPriceUpper - sqrtPriceLower);
+        var liquidityToken0 = request.TokenAmounts[0] != null ? 
+            request.TokenAmounts[0].Value * pool.SqrtPrice * sqrtPriceUpper 
+            / (sqrtPriceUpper - pool.SqrtPrice) 
+            : decimal.MaxValue;
 
-            var token0Amount = request.TokenAmounts[1].Value / sqrtPriceLower * sqrtPriceUpper;
+        var liquidityToken1 = request.TokenAmounts[1] != null ? 
+            request.TokenAmounts[1].Value / (pool.SqrtPrice - sqrtPriceLower) : decimal.MaxValue;
 
-            return MintBothTokens(pool, token0Amount, request.TokenAmounts[1].Value,
-                sqrtPriceLower, sqrtPriceUpper, tickMin, tickMax);
-        }
+        var liquidity = Math.Min(liquidityToken0, liquidityToken1);
 
-        if (request.TokenAmounts[1] is null)
-        {
-            var liquidity = request.TokenAmounts[0].Value * sqrtPriceLower * sqrtPriceUpper / (sqrtPriceUpper - sqrtPriceLower);
+        var token0AmountUsed = liquidity * (sqrtPriceUpper - pool.SqrtPrice) / (pool.SqrtPrice * sqrtPriceUpper);
+        var token1AmountUsed = liquidity * (pool.SqrtPrice - sqrtPriceLower);
 
-            var token1Amount = request.TokenAmounts[0].Value * sqrtPriceLower * sqrtPriceUpper;
+        var position = new Position(request.LpId, tickMin, tickMax, liquidity);
 
-            return MintBothTokens(pool, request.TokenAmounts[0].Value, token1Amount,
-                sqrtPriceLower, sqrtPriceUpper, tickMin, tickMax);
-        }
+        pool.AddPosition(position);
 
-        var liquidity0 = request.TokenAmounts[0].Value * sqrtPriceLower * sqrtPriceUpper / (sqrtPriceUpper - sqrtPriceLower);
-        var liquidity1 = request.TokenAmounts[1].Value / (sqrtPriceUpper - sqrtPriceLower);
+        pool.AddTick(new Tick(tickMin));
+        pool.AddTick(new Tick(tickMax));
 
-        if(liquidity0 <= liquidity1)
-            return MintBothTokens(pool, request.TokenAmounts[0].Value, 
-                request.TokenAmounts[0].Value * sqrtPriceLower * sqrtPriceUpper,
-                sqrtPriceLower, sqrtPriceUpper, tickMin, tickMax);
-
-        return MintBothTokens(pool, 
-            request.TokenAmounts[1].Value / (sqrtPriceLower * sqrtPriceUpper), request.TokenAmounts[1].Value,
-                sqrtPriceLower, sqrtPriceUpper, tickMin, tickMax);
-    }
-
-    private MintResponse MintBothTokens(PoolV3 pool, decimal token0Amount, decimal token1Amount,
-        decimal sqrtPriceLower, decimal sqrtPriceUpper, int tickMin, int tickMax)
-    {
-        throw new NotImplementedException();
+        return new AcceptedMintResponse(position.Id, tickMin.TickToPrice(), tickMax.TickToPrice(),
+            [token0AmountUsed, token1AmountUsed]);
     }
 }
