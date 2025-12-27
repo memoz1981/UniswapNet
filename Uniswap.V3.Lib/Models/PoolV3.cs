@@ -64,11 +64,14 @@ public record struct PoolV3
 
     public void AddTick(int tickIndex, decimal liquidityGross, decimal liquidityNet)
     {
-        var tickToAdd = new Tick(tickIndex, liquidityGross, liquidityNet);
+        var feeGrowth0 = tickIndex <= CurrentTick.TickIndex ? FeeGrowthGlobal[0] : 0; 
+        var feeGrowth1 = tickIndex <= CurrentTick.TickIndex ? FeeGrowthGlobal[1] : 0;
+
+        var tickToAdd = new Tick(tickIndex, liquidityGross, liquidityNet, [feeGrowth0, feeGrowth1]);
 
         if (TickStates.TryGetValue(tickIndex, out var currentTick))
         {
-            TickStates[tickIndex] = (tickToAdd + currentTick.tick, TickState.Initialized);
+            TickStates[tickIndex] = (currentTick.tick.AddToThis(tickToAdd), TickState.Initialized);
 
             return;
         }

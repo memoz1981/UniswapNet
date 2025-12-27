@@ -12,11 +12,15 @@ public record struct Tick
         FeeGrowthOutside = [0, 0];
     }
 
-    public Tick(int tickIndex, decimal liquidityGross, decimal liquitidyNet)
+    public Tick(int tickIndex, decimal liquidityGross, decimal liquitidyNet, decimal[] feeGrowthOutside)
     {
         TickIndex = tickIndex;
         LiquidityGross = liquidityGross;
         LiquidityNet = liquitidyNet;
+
+        if (feeGrowthOutside is null || feeGrowthOutside.Length != 2)
+            throw new ArgumentException("Fee growth array cannot be null and should have length of 2"); 
+
         FeeGrowthOutside = [0, 0];
     }
 
@@ -25,17 +29,15 @@ public record struct Tick
     public decimal LiquidityNet { get; set; }
     public decimal[] FeeGrowthOutside { get; set; }
 
-    public static Tick operator +(Tick a, Tick b)
+    public bool HasZeroFeeGrowth => FeeGrowthOutside[0] == 0m && FeeGrowthOutside[1] == 0m; 
+
+    public Tick AddToThis(Tick other)
     {
-        if (a.TickIndex != b.TickIndex)
+        if (other.TickIndex != TickIndex)
             throw new ArgumentException("Adding ticks with unequal indices not allowed.");
 
-        return new Tick(a.TickIndex, a.LiquidityGross + b.LiquidityGross, a.LiquidityNet + b.LiquidityNet);
+        // we omit the added fee growth numbers as this one is the base (existing)... 
+        return new Tick(TickIndex, other.LiquidityGross + LiquidityGross, other.LiquidityNet + LiquidityNet,
+            FeeGrowthOutside);
     }
-
-    public bool Equals(Tick other)
-        => TickIndex == other.TickIndex;
-
-    public override int GetHashCode()
-        => HashCode.Combine(TickIndex);
 }
