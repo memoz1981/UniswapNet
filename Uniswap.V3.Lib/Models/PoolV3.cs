@@ -58,6 +58,9 @@ public record struct PoolV3
 
     public int Mint(int lpId, int tickMin, int tickMax, decimal liquidity)
     {
+        if (CurrentTick.TickIndex >= tickMin && CurrentTick.TickIndex < tickMax)
+            ActiveLiquidity += liquidity; 
+        
         var tickLower = AddTick(tickMin, liquidity, liquidity);
         var tickUpper = AddTick(tickMax, liquidity, -liquidity);
 
