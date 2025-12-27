@@ -50,11 +50,16 @@ public class PoolMinter
         
         pool.AddPosition(position);
 
-        pool.AddTick(new Tick(tickMin));
-        pool.AddTick(new Tick(tickMax));
+        AddTicksToPool(tickMin, tickMax, liquidity, pool); 
 
         return new AcceptedMintResponse(position.Id, tickMin.TickToPrice(), tickMax.TickToPrice(),
             [request.TokenAmounts[0].Value, 0]);
+    }
+
+    private void AddTicksToPool(int tickMin, int tickMax, decimal liquidity, PoolV3 pool)
+    {
+        pool.AddTick(tickMin, liquidity, liquidity);
+        pool.AddTick(tickMax, liquidity, -liquidity);
     }
 
     private MintResponse MintToken1Only(PoolV3 pool, MintRequest request,
@@ -69,8 +74,7 @@ public class PoolMinter
 
         pool.AddPosition(position);
 
-        pool.AddTick(new Tick(tickMin));
-        pool.AddTick(new Tick(tickMax));
+        AddTicksToPool(tickMin, tickMax, liquidity, pool);
 
         return new AcceptedMintResponse(position.Id, tickMin.TickToPrice(), tickMax.TickToPrice(),
             [0, request.TokenAmounts[1].Value]);
@@ -96,8 +100,7 @@ public class PoolMinter
 
         pool.AddPosition(position);
 
-        pool.AddTick(new Tick(tickMin));
-        pool.AddTick(new Tick(tickMax));
+        AddTicksToPool(tickMin, tickMax, liquidity, pool);
 
         return new AcceptedMintResponse(position.Id, tickMin.TickToPrice(), tickMax.TickToPrice(),
             [token0AmountUsed, token1AmountUsed]);

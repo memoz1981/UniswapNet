@@ -33,7 +33,7 @@ public record struct PoolV3
     public decimal ActiveLiquidity { get; private set; }
 
     //Ownership
-    private Dictionary<Tick, TickState> TickStates { get; set; }
+    private Dictionary<int, (Tick tick, TickState tickState)> TickStates { get; set; }
     private HashSet<Position> Positions { get; set; } 
 
     //Global Fees
@@ -62,21 +62,17 @@ public record struct PoolV3
             throw new InvalidOperationException("Position could not be added."); 
     }
 
-    public void AddTick(Tick tick, TickState state = TickState.Initialized)
+    public void AddTick(int tickIndex, decimal liquidityGross, decimal liquidityNet)
     {
-        if (TickStates.TryGetValue(tick, out var currentTickState))
+        var tickToAdd = new Tick(tickIndex, liquidityGross, liquidityNet);
+
+        if (TickStates.TryGetValue(tickIndex, out var currentTick))
         {
-            if (currentTickState == TickState.DeInitialized)
-            {
-                TickStates[tick] = state;
-            }
-            else
-            {
-                //do nothing??? 
-            }
-            return; 
+            TickStates[tickIndex] = (tickToAdd + currentTick.tick, TickState.Initialized);
+
+            return;
         }
-        
-        TickStates[tick] = state;
+
+        TickStates[tickIndex] = (tickToAdd, TickState.Initialized);
     }
 }
