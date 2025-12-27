@@ -1,7 +1,10 @@
-﻿namespace Uniswap.V3.Lib.Models;
+﻿using Uniswap.V3.Lib.Services;
+
+namespace Uniswap.V3.Lib.Models;
 
 public record struct LP
 {
+    private readonly PoolMinter _minter;
     public static int _count = 0;
     public int Id { get; init; }
     public string Name { get; init; }
@@ -13,11 +16,13 @@ public record struct LP
         Id = _count++;
         Positions = new();
         name = Name;
+        _minter = new();
     }
 
     public void Mint(PoolV3 pool, MintRequest mintRequest, out bool success, out string errorMessage)
     {
-        var response = pool.Mint(mintRequest);
+        var response = _minter.Mint(pool, mintRequest); 
+        
         success = true;
         errorMessage = null;
 

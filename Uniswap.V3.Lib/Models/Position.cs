@@ -9,17 +9,20 @@ public record struct Position
     public int TickUpper { get; init; }
     public decimal Liquidity { get; init; }
 
-    public decimal FeeGrowthInside0Last { get; private set; }
-    public decimal FeeGrowthInside1Last { get; private set; }
-    public decimal TokensOwed0 { get; private set; }
-    public decimal TokensOwed1 { get; private set; }
+    public decimal[] FeeGrowthInsideLast { get; private set; }
+    public decimal[] TokensOwed { get; private set; }
 
-    public Position(int lpId, int tickLower, int tickUpper, decimal liquidity)
+    public Position(int lpId, int tickLower, int tickUpper, decimal liquidity, decimal[] feeGrowthInside)
     {
+        if (feeGrowthInside is null || feeGrowthInside.Length != 2)
+            throw new ArgumentException("Fee growth should be array of size 2...");
+        
         Id = _index++;
         LpId = lpId;
         TickLower = tickLower;
         TickUpper = tickUpper;
         Liquidity = liquidity;
+        FeeGrowthInsideLast = [feeGrowthInside[0], feeGrowthInside[1]]; 
+        TokensOwed = [0, 0]; 
     }
 }

@@ -21,7 +21,7 @@ public record struct Tick
         if (feeGrowthOutside is null || feeGrowthOutside.Length != 2)
             throw new ArgumentException("Fee growth array cannot be null and should have length of 2"); 
 
-        FeeGrowthOutside = [0, 0];
+        FeeGrowthOutside = [feeGrowthOutside[0], feeGrowthOutside[1]];
     }
 
     public int TickIndex { get; init; }

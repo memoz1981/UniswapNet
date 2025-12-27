@@ -46,20 +46,10 @@ public class PoolMinter
         var liquidity = request.TokenAmounts[0].Value * sqrtPriceLower * sqrtPriceUpper
                 / (sqrtPriceUpper - sqrtPriceLower);
 
-        var position = new Position(request.LpId, tickMin, tickMax, liquidity);
+        var positionId = pool.Mint(request.LpId, tickMin, tickMax, liquidity);
         
-        pool.AddPosition(position);
-
-        AddTicksToPool(tickMin, tickMax, liquidity, pool); 
-
-        return new AcceptedMintResponse(position.Id, tickMin.TickToPrice(), tickMax.TickToPrice(),
+        return new AcceptedMintResponse(positionId, tickMin.TickToPrice(), tickMax.TickToPrice(),
             [request.TokenAmounts[0].Value, 0]);
-    }
-
-    private void AddTicksToPool(int tickMin, int tickMax, decimal liquidity, PoolV3 pool)
-    {
-        pool.AddTick(tickMin, liquidity, liquidity);
-        pool.AddTick(tickMax, liquidity, -liquidity);
     }
 
     private MintResponse MintToken1Only(PoolV3 pool, MintRequest request,
@@ -70,13 +60,9 @@ public class PoolMinter
 
         var liquidity = request.TokenAmounts[1].Value / (sqrtPriceUpper - sqrtPriceLower);
 
-        var position = new Position(request.LpId, tickMin, tickMax, liquidity);
+        var positionId = pool.Mint(request.LpId, tickMin, tickMax, liquidity);
 
-        pool.AddPosition(position);
-
-        AddTicksToPool(tickMin, tickMax, liquidity, pool);
-
-        return new AcceptedMintResponse(position.Id, tickMin.TickToPrice(), tickMax.TickToPrice(),
+        return new AcceptedMintResponse(positionId, tickMin.TickToPrice(), tickMax.TickToPrice(),
             [0, request.TokenAmounts[1].Value]);
     }
 
@@ -96,13 +82,9 @@ public class PoolMinter
         var token0AmountUsed = liquidity * (sqrtPriceUpper - pool.SqrtPrice) / (pool.SqrtPrice * sqrtPriceUpper);
         var token1AmountUsed = liquidity * (pool.SqrtPrice - sqrtPriceLower);
 
-        var position = new Position(request.LpId, tickMin, tickMax, liquidity);
+        var positionId = pool.Mint(request.LpId, tickMin, tickMax, liquidity);
 
-        pool.AddPosition(position);
-
-        AddTicksToPool(tickMin, tickMax, liquidity, pool);
-
-        return new AcceptedMintResponse(position.Id, tickMin.TickToPrice(), tickMax.TickToPrice(),
+        return new AcceptedMintResponse(positionId, tickMin.TickToPrice(), tickMax.TickToPrice(),
             [token0AmountUsed, token1AmountUsed]);
     }
 }
