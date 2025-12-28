@@ -5,6 +5,7 @@ namespace Uniswap.V3.Lib.Models;
 public record struct LP
 {
     private readonly PoolMinter _minter;
+    private readonly PoolBurner _burner; 
     public static int _count = 0;
     public int Id { get; init; }
     public string Name { get; init; }
@@ -17,6 +18,7 @@ public record struct LP
         Positions = new();
         name = Name;
         _minter = new();
+        _burner = new(); 
     }
 
     public void Mint(PoolV3 pool, MintRequest mintRequest, out bool success, out string errorMessage)
@@ -43,13 +45,44 @@ public record struct LP
             acceptedResponse.TokenAmounts, acceptedResponse.Liquidity));
     }
 
-    public void Burn(PoolV3 pool, int positionId, double percentageToBurn)
+    public void Burn(PoolV3 pool, int positionId, double percentageToBurn, out bool success, out string errorMessage)
     {
-        if (Positions.Any(pos => pos.PositionId == positionId))
-            throw new ArgumentException($"Position with id {positionId} doesnt exist."); 
+        var positionToBurn = Positions.SingleOrDefault(pos => pos.PositionId == positionId); 
 
+        if (positionToBurn == default)
+            throw new ArgumentException($"Position with id {positionId} doesnt exist.");
 
+        if(positionToBurn.Liquidity == 0m)
+            throw new ArgumentException($"Position with id {positionId} has no left liquidity to burn.");
+
+        if (percentageToBurn > 100 || percentageToBurn < 0)
+            throw new ArgumentException($"Incorrect percentage value {percentageToBurn} passed.");
+
+        var burnRequest = new BurnRequest(Id, positionId, positionToBurn.Liquidity * (decimal)percentageToBurn / 100m); 
+
+        var response = _burner.Burn(pool, burnRequest);
+
+        success = true;
+        errorMessage = null;
+
+        if (!response.IsSuccess)
+        {
+            success = false;
+
+            if (response is not RejectedBurnResponse rejectedMintResponse)
+                throw new InvalidOperationException("Response mismatch.");
+
+            errorMessage = rejectedMintResponse.ErrorMessage;
+        }
+
+        if (response is not AcceptedBurnResponse acceptedResponse)
+            throw new InvalidOperationException("Response mismatch.");
+
+        Positions.Remove(positionToBurn);
+
+        var positionUpdated = new LpPosition(positionToBurn.PositionId, positionToBurn.PriceMin, positionToBurn.PriceMax,
+            acceptedResponse.TokenAmountsLeft, positionToBurn.Liquidity * (1 - (decimal)percentageToBurn/100)); 
+
+        Positions.Add(positionUpdated);
     }
-
-    
 }
