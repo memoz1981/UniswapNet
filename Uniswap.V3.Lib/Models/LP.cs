@@ -1,11 +1,13 @@
-﻿using Uniswap.V3.Lib.Services;
+﻿using Uniswap.V3.Lib.Persistence;
+using Uniswap.V3.Lib.Services;
 
 namespace Uniswap.V3.Lib.Models;
 
 public record struct LP
 {
     private readonly PoolMinter _minter;
-    private readonly PoolBurner _burner; 
+    private readonly PoolBurner _burner;
+    private readonly PoolCollector _collector; 
     public static int _count = 0;
     public int Id { get; init; }
     public string Name { get; init; }
@@ -18,7 +20,8 @@ public record struct LP
         Positions = new();
         name = Name;
         _minter = new();
-        _burner = new(); 
+        _burner = new();
+        _collector = new(); 
     }
 
     public void Mint(PoolV3 pool, MintRequest mintRequest, out bool success, out string errorMessage)
@@ -84,5 +87,66 @@ public record struct LP
 
         positionToBurn.TokensOwed[0] += acceptedResponse.TokenAmountsBurned[0];
         positionToBurn.TokensOwed[1] += acceptedResponse.TokenAmountsBurned[1];
+    }
+
+    public void Collect(PoolV3 pool, decimal[] amounts, int positionId, int recipientId, out bool success, out string errorMessage)
+    {
+        success = true;
+        errorMessage = string.Empty;
+
+        if (!RecipientRepo.RecipientsById.TryGetValue(recipientId, out var recipient))
+        {
+            success = false;
+            errorMessage = $"Recipient with Id of {recipientId} doesn't exist.";
+
+            return; 
+        }
+
+        if (amounts is null || amounts.Length != 2 || amounts[0] < 0 || amounts[1] < 0)
+        {
+            success = false;
+            errorMessage = $"Provided amounts not correct.";
+
+            return;
+        }
+
+        var positionToCollect = Positions.SingleOrDefault(pos => pos.PositionId == positionId);
+
+        if (positionToCollect == default)
+        {
+            success = false;
+            errorMessage = $"Provided position doesn't exist.";
+
+            return;
+        }
+
+        var collectRequest = new CollectRequest(Id, positionId, amounts, recipientId);
+
+        var result = _collector.Collect(pool, collectRequest);
+
+        if (!result.IsSuccess)
+        {
+            if (result is not RejectedCollectResponse rejectedResponse)
+                throw new ArgumentException("Mismatched collect response.");
+
+            errorMessage = rejectedResponse.ErrorMessage;
+            success = false;
+
+            return;
+        }
+
+        if (result is not AcceptedCollectResponse acceptedResponse)
+            throw new ArgumentException("Mismatched collect response.");
+
+        positionToCollect.TokensOwed[0] -= acceptedResponse.CollectedAmounts[0];
+        positionToCollect.TokensOwed[1] -= acceptedResponse.CollectedAmounts[1];
+
+        // position no longer needed...
+        if (positionToCollect.Liquidity == 0m &&
+            positionToCollect.TokensOwed[0] == 0m &&
+            positionToCollect.TokensOwed[1] == 0m)
+        {
+            Positions.Remove(positionToCollect);
+        }
     }
 }
