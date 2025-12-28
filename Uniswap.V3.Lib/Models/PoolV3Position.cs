@@ -1,6 +1,6 @@
 ﻿namespace Uniswap.V3.Lib.Models;
 
-public record struct Position
+public record struct PoolV3Position
 {
     private static int _index = 0;
     public int Id { get; init; }
@@ -12,7 +12,7 @@ public record struct Position
     public decimal[] FeeGrowthInsideLast { get; private set; }
     public decimal[] TokensOwed { get; private set; }
 
-    public Position(int lpId, int tickLower, int tickUpper, decimal liquidity, decimal[] feeGrowthInside)
+    public PoolV3Position(int lpId, int tickLower, int tickUpper, decimal liquidity, decimal[] feeGrowthInside)
     {
         if (feeGrowthInside is null || feeGrowthInside.Length != 2)
             throw new ArgumentException("Fee growth should be array of size 2...");

@@ -9,7 +9,7 @@ public record struct LP
     public int Id { get; init; }
     public string Name { get; init; }
 
-    public List<AcceptedMintResponse> Positions { get; private set; }
+    public List<LpPosition> Positions { get; private set; }
 
     public LP(string name)
     {
@@ -39,6 +39,17 @@ public record struct LP
         if (response is not AcceptedMintResponse acceptedResponse)
             throw new InvalidOperationException("Response mismatch."); 
 
-        Positions.Add(acceptedResponse);
+        Positions.Add(new LpPosition(acceptedResponse.PositionId, acceptedResponse.PriceMin, acceptedResponse.PriceMax,
+            acceptedResponse.TokenAmounts, acceptedResponse.Liquidity));
     }
+
+    public void Burn(PoolV3 pool, int positionId, double percentageToBurn)
+    {
+        if (Positions.Any(pos => pos.PositionId == positionId))
+            throw new ArgumentException($"Position with id {positionId} doesnt exist."); 
+
+
+    }
+
+    
 }

@@ -34,7 +34,7 @@ public record struct PoolV3
 
     //Ownership
     private Dictionary<int, (Tick tick, TickState tickState)> TickStates { get; set; }
-    private HashSet<Position> Positions { get; set; }
+    private HashSet<PoolV3Position> Positions { get; set; }
 
     //Global Fees
     public decimal[] FeeGrowthGlobal { get; private set; }
@@ -73,7 +73,7 @@ public record struct PoolV3
     {
         var feeGrowthInside = GetFeeGrowthInsideForPosition(tickLower, tickUpper);
 
-        var position = new Position(lpId, tickLower.TickIndex, tickUpper.TickIndex, liquidity, feeGrowthInside);
+        var position = new PoolV3Position(lpId, tickLower.TickIndex, tickUpper.TickIndex, liquidity, feeGrowthInside);
 
         if (!Positions.Add(position))
             throw new InvalidOperationException("Position could not be added.");

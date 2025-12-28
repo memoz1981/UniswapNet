@@ -49,7 +49,7 @@ public class PoolMinter
         var positionId = pool.Mint(request.LpId, tickMin, tickMax, liquidity);
         
         return new AcceptedMintResponse(positionId, tickMin.TickToPrice(), tickMax.TickToPrice(),
-            [request.TokenAmounts[0].Value, 0]);
+            [request.TokenAmounts[0].Value, 0], liquidity);
     }
 
     private MintResponse MintToken1Only(PoolV3 pool, MintRequest request,
@@ -63,7 +63,7 @@ public class PoolMinter
         var positionId = pool.Mint(request.LpId, tickMin, tickMax, liquidity);
 
         return new AcceptedMintResponse(positionId, tickMin.TickToPrice(), tickMax.TickToPrice(),
-            [0, request.TokenAmounts[1].Value]);
+            [0, request.TokenAmounts[1].Value], liquidity);
     }
 
     private MintResponse MintBothTokens(PoolV3 pool, MintRequest request, 
@@ -85,6 +85,6 @@ public class PoolMinter
         var positionId = pool.Mint(request.LpId, tickMin, tickMax, liquidity);
 
         return new AcceptedMintResponse(positionId, tickMin.TickToPrice(), tickMax.TickToPrice(),
-            [token0AmountUsed, token1AmountUsed]);
+            [token0AmountUsed, token1AmountUsed], liquidity);
     }
 }
