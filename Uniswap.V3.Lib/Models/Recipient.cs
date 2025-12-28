@@ -14,15 +14,22 @@ public class Recipient
 
     public Dictionary<Token, decimal> Holdings { get; private set; }
 
-    public void Receive(Token token, decimal amount)
+    public bool Receive(Token token, decimal amount)
     {
-        if (!Holdings.TryGetValue(token, out var _))
+        if (!CanSuccessfullyReceive)
+            return false; 
+        
+        var amountToAdd = amount; 
+        
+        if (Holdings.TryGetValue(token, out var existingAmount))
         {
-            Holdings[token] = amount;
-            return; 
+            amountToAdd += existingAmount; 
         }
-            
 
-        Holdings[token] += amount;
+        Holdings[token] = amountToAdd;
+
+        return true; 
     }
+
+    public bool CanSuccessfullyReceive { get; set; }
 }
