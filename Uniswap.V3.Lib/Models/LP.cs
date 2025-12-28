@@ -36,13 +36,14 @@ public record struct LP
                 throw new InvalidOperationException("Response mismatch.");
 
             errorMessage = rejectedMintResponse.ErrorMessage;
+            return; 
         }
 
         if (response is not AcceptedMintResponse acceptedResponse)
             throw new InvalidOperationException("Response mismatch."); 
 
         Positions.Add(new LpPosition(acceptedResponse.PositionId, acceptedResponse.PriceMin, acceptedResponse.PriceMax,
-            acceptedResponse.TokenAmounts, acceptedResponse.Liquidity));
+            [0, 0], acceptedResponse.Liquidity));
     }
 
     public void Burn(PoolV3 pool, int positionId, double percentageToBurn, out bool success, out string errorMessage)
@@ -73,16 +74,15 @@ public record struct LP
                 throw new InvalidOperationException("Response mismatch.");
 
             errorMessage = rejectedMintResponse.ErrorMessage;
+            return; 
         }
 
         if (response is not AcceptedBurnResponse acceptedResponse)
             throw new InvalidOperationException("Response mismatch.");
 
-        Positions.Remove(positionToBurn);
+        positionToBurn.Liquidity = acceptedResponse.LiquidityLeft;
 
-        var positionUpdated = new LpPosition(positionToBurn.PositionId, positionToBurn.PriceMin, positionToBurn.PriceMax,
-            acceptedResponse.TokenAmountsLeft, positionToBurn.Liquidity * (1 - (decimal)percentageToBurn/100)); 
-
-        Positions.Add(positionUpdated);
+        positionToBurn.TokensOwed[0] += acceptedResponse.TokenAmountsBurned[0];
+        positionToBurn.TokensOwed[1] += acceptedResponse.TokenAmountsBurned[1];
     }
 }

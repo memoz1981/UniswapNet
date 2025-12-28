@@ -2,7 +2,7 @@
 
 namespace Uniswap.V3.Lib.Models;
 
-public record struct Tick
+public class Tick
 {
     public Tick(int tickIndex)
     {

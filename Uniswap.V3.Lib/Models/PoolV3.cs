@@ -28,17 +28,17 @@ public record struct PoolV3
     public int TickSpacing { get; init; }
 
     //Current state
-    public decimal SqrtPrice { get; private set; }
-    public Tick CurrentTick { get; private set; }
-    public decimal ActiveLiquidity { get; private set; }
+    public decimal SqrtPrice { get; set; }
+    public Tick CurrentTick { get; set; }
+    public decimal ActiveLiquidity { get; set; }
 
     //Ownership
-    private Dictionary<int, (Tick tick, TickState tickState)> TickStates { get; set; }
-    private HashSet<PoolV3Position> Positions { get; set; }
+    public Dictionary<int, (Tick tick, TickState tickState)> TickStates { get; set; }
+    public Dictionary<int, PoolV3Position> Positions { get; set; }
 
     //Global Fees
-    public decimal[] FeeGrowthGlobal { get; private set; }
-    public decimal[] ProtocolFees { get; private set; }
+    public decimal[] FeeGrowthGlobal { get; set; }
+    public decimal[] ProtocolFees { get; set; }
 
     public void Initialize(decimal initialPrice)
     {
@@ -54,83 +54,5 @@ public record struct PoolV3
         _initialized = true;
     }
 
-    public bool Initialized => _initialized;
-
-    public int Mint(int lpId, int tickMin, int tickMax, decimal liquidity)
-    {
-        if (CurrentTick.TickIndex >= tickMin && CurrentTick.TickIndex < tickMax)
-            ActiveLiquidity += liquidity; 
-        
-        var tickLower = AddTick(tickMin, liquidity, liquidity);
-        var tickUpper = AddTick(tickMax, liquidity, -liquidity);
-
-        var positionId = AddPosition(lpId, liquidity, tickLower, tickUpper);
-
-        return positionId; 
-    }
-
-    private int AddPosition(int lpId, decimal liquidity, Tick tickLower, Tick tickUpper)
-    {
-        var feeGrowthInside = GetFeeGrowthInsideForPosition(tickLower, tickUpper);
-
-        var position = new PoolV3Position(lpId, tickLower.TickIndex, tickUpper.TickIndex, liquidity, feeGrowthInside);
-
-        if (!Positions.Add(position))
-            throw new InvalidOperationException("Position could not be added.");
-
-        return position.Id; 
-    }
-
-    private decimal[] GetFeeGrowthInsideForPosition(Tick tickLower, Tick tickUpper)
-    {
-        decimal feeBelow0 = 0m;
-        decimal feeBelow1 = 0m;
-
-        decimal feeAbove0 = 0m;
-        decimal feeAbove1 = 0m;
-
-        // assign lower fee
-        if (tickLower.TickIndex <= CurrentTick.TickIndex)
-        {
-            feeBelow0 = tickLower.FeeGrowthOutside[0];
-            feeBelow1 = tickLower.FeeGrowthOutside[1];
-        }
-        else
-        {
-            feeBelow0 = FeeGrowthGlobal[0] - tickLower.FeeGrowthOutside[0];
-            feeBelow1 = FeeGrowthGlobal[1] - tickLower.FeeGrowthOutside[1];
-        }
-
-        //assign upper fee
-        if (CurrentTick.TickIndex < tickUpper.TickIndex)
-        {
-            feeAbove0 = tickUpper.FeeGrowthOutside[0];
-            feeAbove1 = tickUpper.FeeGrowthOutside[1];
-        }
-        else
-        {
-            feeAbove0 = FeeGrowthGlobal[0] - tickUpper.FeeGrowthOutside[0];
-            feeAbove1 = FeeGrowthGlobal[1] - tickUpper.FeeGrowthOutside[1];
-        }
-
-        var feeGrowthInside0 = FeeGrowthGlobal[0] - feeBelow0 - feeAbove0; 
-        var feeGrowthInside1 = FeeGrowthGlobal[1] - feeBelow1 - feeAbove1;
-
-        return [feeGrowthInside0, feeGrowthInside1]; 
-    }
-
-    private Tick AddTick(int tickIndex, decimal liquidityGross, decimal liquidityNet)
-    {
-        var feeGrowth0 = tickIndex <= CurrentTick.TickIndex ? FeeGrowthGlobal[0] : 0; 
-        var feeGrowth1 = tickIndex <= CurrentTick.TickIndex ? FeeGrowthGlobal[1] : 0;
-
-        var tickToAdd = new Tick(tickIndex, liquidityGross, liquidityNet, [feeGrowth0, feeGrowth1]);
-
-        if (TickStates.TryGetValue(tickIndex, out var currentTick))
-            TickStates[tickIndex] = (currentTick.tick.AddToThis(tickToAdd), TickState.Initialized);
-        else
-            TickStates[tickIndex] = (tickToAdd, TickState.Initialized);
-
-        return TickStates[tickIndex].tick; 
-    }
+    public bool Initialized => _initialized; 
 }

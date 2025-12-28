@@ -22,14 +22,14 @@ public class RejectedBurnResponse : BurnResponse
 
 public class AcceptedBurnResponse : BurnResponse
 {
-    public AcceptedBurnResponse(int positionId, decimal[] tokenAmountsBurned, decimal[] tokenAmountsLeft) : base(true)
+    public AcceptedBurnResponse(int positionId, decimal[] tokenAmountsBurned, decimal liquidityLeft) : base(true)
     {
         PositionId = positionId;
         TokenAmountsBurned = [tokenAmountsBurned[0], tokenAmountsBurned[1]];
-        TokenAmountsLeft = [tokenAmountsLeft[0], tokenAmountsLeft[1]];
+        LiquidityLeft = liquidityLeft;
     }
 
     public int PositionId { get; }
     public decimal[] TokenAmountsBurned { get; }
-    public decimal[] TokenAmountsLeft { get; }
+    public decimal LiquidityLeft { get; }
 }

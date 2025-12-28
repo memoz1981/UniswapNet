@@ -1,4 +1,5 @@
-﻿using Uniswap.V3.Lib.Extensions;
+﻿using Uniswap.V3.Lib.Enums;
+using Uniswap.V3.Lib.Extensions;
 using Uniswap.V3.Lib.Models;
 
 namespace Uniswap.V3.Lib.Services;
@@ -46,7 +47,7 @@ public class PoolMinter
         var liquidity = request.TokenAmounts[0].Value * sqrtPriceLower * sqrtPriceUpper
                 / (sqrtPriceUpper - sqrtPriceLower);
 
-        var positionId = pool.Mint(request.LpId, tickMin, tickMax, liquidity);
+        var positionId = MintPosition(pool, request.LpId, tickMin, tickMax, liquidity);
         
         return new AcceptedMintResponse(positionId, tickMin.TickToPrice(), tickMax.TickToPrice(),
             [request.TokenAmounts[0].Value, 0], liquidity);
@@ -60,7 +61,7 @@ public class PoolMinter
 
         var liquidity = request.TokenAmounts[1].Value / (sqrtPriceUpper - sqrtPriceLower);
 
-        var positionId = pool.Mint(request.LpId, tickMin, tickMax, liquidity);
+        var positionId = MintPosition(pool, request.LpId, tickMin, tickMax, liquidity);
 
         return new AcceptedMintResponse(positionId, tickMin.TickToPrice(), tickMax.TickToPrice(),
             [0, request.TokenAmounts[1].Value], liquidity);
@@ -82,9 +83,51 @@ public class PoolMinter
         var token0AmountUsed = liquidity * (sqrtPriceUpper - pool.SqrtPrice) / (pool.SqrtPrice * sqrtPriceUpper);
         var token1AmountUsed = liquidity * (pool.SqrtPrice - sqrtPriceLower);
 
-        var positionId = pool.Mint(request.LpId, tickMin, tickMax, liquidity);
+        var positionId = MintPosition(pool, request.LpId, tickMin, tickMax, liquidity);
 
         return new AcceptedMintResponse(positionId, tickMin.TickToPrice(), tickMax.TickToPrice(),
             [token0AmountUsed, token1AmountUsed], liquidity);
+    }
+
+    public int MintPosition(PoolV3 pool, int lpId, int tickMin, int tickMax, decimal liquidity)
+    {
+        if (pool.CurrentTick.TickIndex >= tickMin && pool.CurrentTick.TickIndex < tickMax)
+            pool.ActiveLiquidity += liquidity;
+
+        var tickLower = AddTick(pool, tickMin, liquidity, liquidity);
+        var tickUpper = AddTick(pool, tickMax, liquidity, -liquidity);
+
+        var positionId = AddPosition(pool, lpId, liquidity, tickLower, tickUpper);
+
+        return positionId;
+    }
+
+    private int AddPosition(PoolV3 pool, int lpId, decimal liquidity, Tick tickLower, Tick tickUpper)
+    {
+        var feeGrowthInside = pool.GetFeeGrowthInsideForPosition(tickLower, tickUpper);
+
+        var position = new PoolV3Position(lpId, tickLower, tickUpper, liquidity, feeGrowthInside);
+
+        if (pool.Positions.ContainsKey(position.Id))
+            throw new InvalidOperationException("Position already exists.");
+
+        pool.Positions[position.Id] = position;
+
+        return position.Id;
+    }
+
+    private Tick AddTick(PoolV3 pool, int tickIndex, decimal liquidityGross, decimal liquidityNet)
+    {
+        var feeGrowth0 = tickIndex <= pool.CurrentTick.TickIndex ? pool.FeeGrowthGlobal[0] : 0;
+        var feeGrowth1 = tickIndex <= pool.CurrentTick.TickIndex ? pool.FeeGrowthGlobal[1] : 0;
+
+        var tickToAdd = new Tick(tickIndex, liquidityGross, liquidityNet, [feeGrowth0, feeGrowth1]);
+
+        if (pool.TickStates.TryGetValue(tickIndex, out var currentTick))
+            pool.TickStates[tickIndex] = (currentTick.tick.AddToThis(tickToAdd), TickState.Initialized);
+        else
+            pool.TickStates[tickIndex] = (tickToAdd, TickState.Initialized);
+
+        return pool.TickStates[tickIndex].tick;
     }
 }
