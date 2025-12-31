@@ -123,11 +123,11 @@ public class PoolMinter
 
         var tickToAdd = new Tick(tickIndex, liquidityGross, liquidityNet, [feeGrowth0, feeGrowth1]);
 
-        if (pool.TickStates.TryGetValue(tickIndex, out var currentTick))
-            pool.TickStates[tickIndex] = (currentTick.tick.AddToThis(tickToAdd), TickState.Initialized);
-        else
-            pool.TickStates[tickIndex] = (tickToAdd, TickState.Initialized);
+        pool.TickStates.AddTick(tickToAdd);
 
-        return pool.TickStates[tickIndex].tick;
+        if (!pool.TickStates.TryGetTickAtIndex(tickToAdd.TickIndex, out var tick) || tick.State != TickState.Initialized)
+            throw new InvalidOperationException("The tick was just added...");
+
+        return tick;
     }
 }

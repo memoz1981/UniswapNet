@@ -1,5 +1,4 @@
-﻿using Uniswap.V3.Lib.Enums;
-using Uniswap.V3.Lib.Extensions;
+﻿using Uniswap.V3.Lib.Extensions;
 
 namespace Uniswap.V3.Lib.Models;
 
@@ -12,7 +11,7 @@ public record struct PoolV3
         TickSpacing = tickSpacing;
         SqrtPrice = 0;
         CurrentTick = default(Tick);
-        TickStates = [];
+        TickStates = new();
         Positions = [];
         FeeGrowthGlobal = [0, 0];
         ProtocolFees = [0, 0];
@@ -33,7 +32,7 @@ public record struct PoolV3
     public decimal ActiveLiquidity { get; set; }
 
     //Ownership
-    public Dictionary<int, (Tick tick, TickState tickState)> TickStates { get; set; }
+    public TickStates TickStates { get; set; }
     public Dictionary<int, PoolV3Position> Positions { get; set; }
 
     //Global Fees

@@ -22,9 +22,9 @@ public class PoolSwapper
         var swapDirection = request.GetSwapDirectionOrNull(pool);
 
         if (swapDirection is null)
-            return new RejectedSwapResponse("Swap direction could not be determined from the request."); 
+            return new RejectedSwapResponse("Swap direction could not be determined from the request.");
 
-
+        return null;
     }
 
     private SwapResponse Swap(PoolV3 pool, SwapRequest request,
@@ -34,8 +34,8 @@ public class PoolSwapper
         var amountOut = 0m;
 
         var currentSqrtPrice = pool.SqrtPrice;
-        var currentTick = pool.CurrentTick; 
+        var currentTick = pool.CurrentTick;
 
-
+        return null;
     }
 }

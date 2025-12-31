@@ -89,10 +89,10 @@ public class PoolBurner
     private void UpdateTickStates(PoolV3 pool, PoolV3Position position)
     {
         if (position.TickLower.LiquidityGross == 0m && position.TickLower.LiquidityNet == 0m)
-            pool.TickStates[position.TickLower.TickIndex] = (position.TickLower, TickState.DeInitialized);
+            position.TickLower.DeActivate();
 
         if (position.TickUpper.LiquidityGross == 0m && position.TickUpper.LiquidityNet == 0m)
-            pool.TickStates[position.TickUpper.TickIndex] = (position.TickUpper, TickState.DeInitialized);
+            position.TickUpper.DeActivate();
     }
 
     private void UpdatePoolActiveLiquidity(PoolV3 pool, PoolV3Position position, BurnRequest request)
