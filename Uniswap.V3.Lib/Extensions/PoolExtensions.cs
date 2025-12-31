@@ -41,4 +41,6 @@ public static class PoolExtensions
 
         return [feeGrowthInside0, feeGrowthInside1];
     }
+
+    public static decimal GetFeeTier(this PoolV3 pool) => (decimal)pool.FeeTier / 10_000m; 
 }
