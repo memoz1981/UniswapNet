@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Uniswap.V3.Lib.Models;
+﻿namespace Uniswap.V3.Lib.Models;
 
 public class Tick
 {
