@@ -22,7 +22,7 @@ public class PoolSwapper_ExactIn_0To1
 
         while (true)
         {
-            if ((currentTick is null && !request.swapIn.TokenIn.IsZero(amountIn)) || currentActiveLiquidity <= 0m)
+            if (currentTick is null || currentActiveLiquidity <= 0m)
                 break;
 
             if (request.swapIn.TokenIn.IsZero(amountIn))

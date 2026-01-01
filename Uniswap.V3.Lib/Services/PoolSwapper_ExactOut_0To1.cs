@@ -5,8 +5,8 @@ public class PoolSwapper_ExactOut_0To1
 {
     public SwapResponse Swap(PoolV3 pool, SwapRequest request, Tick currentTick)
     {
-        var amountIn = request.swapIn.AmountIn.Value;
-        var amountOut = 0m;
+        var amountOut = request.swapOut.AmountOut.Value;
+        var amountIn = 0m;
 
         var currentPrice = pool.SqrtPrice;
         var currentActiveLiquidity = pool.ActiveLiquidity;
@@ -20,27 +20,27 @@ public class PoolSwapper_ExactOut_0To1
 
         while (true)
         {
-            if ((currentTick is null && !request.swapIn.TokenIn.IsZero(amountIn)) || currentActiveLiquidity <= 0m)
-                return new RejectedSwapResponse("Not enough liquidity to process the swap");
+            if (currentTick is null || currentActiveLiquidity <= 0m)
+                break;
 
-            if (request.swapIn.TokenIn.IsZero(amountIn))
+            if (request.swapOut.TokenOut.IsZero(amountOut))
                 break;
 
             var prevPrice = currentTick.TickIndex.TickToSqrtPrice();
 
-            var maxDeltaWithinTick = currentActiveLiquidity * (prevPrice.Inv() - currentPrice.Inv());
-
-            var maxInputFromTraderWithinTick = maxDeltaWithinTick / (1 - pool.GetFeeTier());
+            var maxOutputCurrentTick = currentActiveLiquidity * (currentPrice - prevPrice);
 
             // full tick consumed
-            if (amountIn >= maxInputFromTraderWithinTick)
+            if (amountOut >= maxOutputCurrentTick)
             {
-                amountIn -= maxInputFromTraderWithinTick;
-                amountOut += currentActiveLiquidity * (currentPrice - prevPrice);
-
+                var amountInNet = currentActiveLiquidity * (prevPrice.Inv() - currentPrice.Inv());
+                var amountInGross = amountInNet / (1 - pool.GetFeeTier());
+                amountIn += amountInGross;
+                amountOut -= maxOutputCurrentTick;
+                
                 currentPrice = prevPrice;
 
-                deltaFee = (maxInputFromTraderWithinTick - maxDeltaWithinTick);
+                deltaFee = (amountInGross - amountInNet);
                 feesUsed += deltaFee;
                 deltaFeeGrowth = deltaFee / currentActiveLiquidity;
                 feeGrowth0 += deltaFeeGrowth;
@@ -52,31 +52,32 @@ public class PoolSwapper_ExactOut_0To1
             }
 
             // tick partially consumed
-            var deltaToSwapWithinTick = amountIn * (1 - pool.GetFeeTier());
-            var sqrtPriceNew = (currentPrice.Inv() + deltaToSwapWithinTick * currentActiveLiquidity.Inv()).Inv();
+            var sqrtPriceNew = currentPrice - amountOut / currentActiveLiquidity;
+            var netInput = currentActiveLiquidity * (sqrtPriceNew.Inv() - currentPrice.Inv());
+            var grossInput = netInput / (1 - pool.GetFeeTier());
+            amountIn += grossInput;
+            deltaFee = grossInput - netInput;
+            deltaFeeGrowth = deltaFee / currentActiveLiquidity; 
 
-            amountOut += currentActiveLiquidity * (currentPrice - sqrtPriceNew);
+            amountOut = 0;
             currentPrice = sqrtPriceNew;
-            deltaFee = amountIn * pool.GetFeeTier();
             feesUsed += deltaFee;
-            deltaFeeGrowth = deltaFee / currentActiveLiquidity;
             feeGrowth0 += deltaFeeGrowth;
-            amountIn = 0m;
             break;
         }
 
-        if (amountOut < request.swapIn.AmountOutMinimum)
-            return new RejectedSwapResponse($"Specified amount out could not be received: " +
-                $"specified {request.swapIn.AmountOutMinimum}, achieved: {amountOut}");
+        if (amountIn > request.swapOut.AmountInMaximum)
+            return new RejectedSwapResponse($"Used more than minimum inputs " +
+                $"specified {request.swapOut.AmountInMaximum}, achieved: {amountIn}");
 
-        if (!request.swapIn.TokenIn.IsZero(amountIn))
-            return new RejectedSwapResponse($"Specified amount out could not be spent: " +
-                $"specified {request.swapIn.AmountIn}, left: {amountIn}");
+        if(!request.swapOut.TokenOut.IsZero(amountOut))
+            return new RejectedSwapResponse($"Specified amount out could not be sent: " +
+                $"specified {request.swapOut.AmountInMaximum}, achieved: {amountIn}");
 
         CommitValues(pool, currentActiveLiquidity, currentPrice, currentTick, [feeGrowth0, pool.FeeGrowthGlobal[1]],
             feeGrowthByTick);
 
-        return new AcceptedSwapResponse(request.swapIn.AmountIn.Value - amountIn, amountOut);
+        return new AcceptedSwapResponse(amountIn, request.swapOut.AmountOut.Value - amountOut);
     }
 
     private void CommitValues(PoolV3 pool, decimal activeLiquidity, decimal sqrtPrice, Tick currentTick, decimal[] deltaFeePool,

@@ -22,7 +22,7 @@ namespace Uniswap.V3.Lib.Services
 
             while (true)
             {
-                if ((currentTick?.Next is null && !request.swapIn.TokenIn.IsZero(amountIn)) || currentActiveLiquidity <= 0m)
+                if (currentTick?.Next is null || currentActiveLiquidity <= 0m)
                     break; 
 
                 if (request.swapIn.TokenIn.IsZero(amountIn))
