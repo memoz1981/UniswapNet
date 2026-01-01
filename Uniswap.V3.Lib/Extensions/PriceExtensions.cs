@@ -39,4 +39,17 @@ public static class PriceExtensions
 
         return (grossInput, output, deltaFee, deltaFeeGrowth);
     }
+
+    public static (decimal grossInput, decimal output, decimal deltaFee, decimal deltaFeeGrowth)
+        CalculateSwapStep1_0(this PoolV3 pool, decimal currentPrice, decimal nextPrice, decimal activeLiquidity)
+    {
+        var netInput = activeLiquidity * (nextPrice - currentPrice);
+        var grossInput = netInput / (1 - pool.GetFeeTier());
+        var output = activeLiquidity * (currentPrice.Inv() - nextPrice.Inv());
+
+        var deltaFee = grossInput - netInput;
+        var deltaFeeGrowth = deltaFee / activeLiquidity;
+
+        return (grossInput, output, deltaFee, deltaFeeGrowth);
+    }
 }

@@ -15,11 +15,14 @@ namespace Uniswap.V3.Lib.Services
             var currentActiveLiquidity = pool.ActiveLiquidity;
             var feesUsed = 0m;
 
+            var priceLimit = request.swapIn.PriceLimit.Value;
+
+            if (currentPrice >= priceLimit)
+                return new RejectedSwapResponse("Current price is above or at the limit price");
+
             var feeGrowth1 = pool.FeeGrowthGlobal[1];
 
             var feeGrowthByTick = new Dictionary<int, (decimal token0, decimal token1)>();
-            decimal deltaFee = 0m;
-            decimal deltaFeeGrowth = 0m;
 
             while (true)
             {
@@ -31,22 +34,17 @@ namespace Uniswap.V3.Lib.Services
 
                 var nextPrice = currentTick.Next.TickIndex.TickToSqrtPrice();
 
-                var maxDeltaWithinTick = currentActiveLiquidity * (nextPrice - currentPrice);
-
-                var maxInputFromTraderWithinTick = maxDeltaWithinTick / (1 - pool.GetFeeTier());
+                var maxValuesForTick = pool.CalculateSwapStep1_0(currentPrice, nextPrice, currentActiveLiquidity); 
 
                 // full tick consumed
-                if (amountIn >= maxInputFromTraderWithinTick)
+                if (amountIn >= maxValuesForTick.grossInput && nextPrice <= priceLimit)
                 {
-                    amountIn -= maxInputFromTraderWithinTick;
-                    amountOut += currentActiveLiquidity * (currentPrice.Inv() - nextPrice.Inv());
+                    amountIn -= maxValuesForTick.grossInput;
+                    amountOut += maxValuesForTick.output;
 
                     currentPrice = nextPrice;
-
-                    deltaFee = (maxInputFromTraderWithinTick - maxDeltaWithinTick);
-                    feesUsed += deltaFee;
-                    deltaFeeGrowth = deltaFee / currentActiveLiquidity;
-                    feeGrowth1 += deltaFeeGrowth;
+                    feesUsed += maxValuesForTick.deltaFee;
+                    feeGrowth1 += maxValuesForTick.deltaFeeGrowth;
                     currentTick = currentTick.Next;
                     currentActiveLiquidity += currentTick.LiquidityNet;
                     feeGrowthByTick[currentTick.TickIndex] = (currentTick.FeeGrowthOutside[0], feeGrowth1);
@@ -56,14 +54,14 @@ namespace Uniswap.V3.Lib.Services
                 // tick partially consumed
                 var deltaToSwapWithinTick = amountIn * (1 - pool.GetFeeTier());
                 var sqrtPriceNew = currentPrice + deltaToSwapWithinTick / currentActiveLiquidity;
+                sqrtPriceNew = sqrtPriceNew <= priceLimit ? sqrtPriceNew : priceLimit;
 
-                amountOut += currentActiveLiquidity * (currentPrice.Inv() - sqrtPriceNew.Inv());
+                var valuesWithinTick = pool.CalculateSwapStep1_0(currentPrice, sqrtPriceNew, currentActiveLiquidity);
+                amountOut += valuesWithinTick.output;
                 currentPrice = sqrtPriceNew;
-                deltaFee = amountIn * pool.GetFeeTier();
-                feesUsed += deltaFee;
-                deltaFeeGrowth = deltaFee / currentActiveLiquidity;
-                feeGrowth1 += deltaFeeGrowth;
-                amountIn = 0m;
+                feesUsed += valuesWithinTick.deltaFee;
+                feeGrowth1 += valuesWithinTick.deltaFeeGrowth;
+                amountIn -= valuesWithinTick.grossInput;
                 break;
             }
 
