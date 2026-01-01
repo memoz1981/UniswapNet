@@ -18,7 +18,7 @@ public record struct LP
     {
         Id = _count++;
         Positions = new();
-        name = Name;
+        Name = name;
         _minter = new();
         _burner = new();
         _collector = new(); 
