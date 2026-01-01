@@ -1,4 +1,6 @@
-﻿namespace Uniswap.V3.Lib.Extensions;
+﻿using Uniswap.V3.Lib.Models;
+
+namespace Uniswap.V3.Lib.Extensions;
 
 public static class PriceExtensions
 {
@@ -24,4 +26,17 @@ public static class PriceExtensions
 
     public static decimal ToSqrtPrice(this decimal price) 
         => (decimal)Math.Sqrt((double)price);
+
+    public static (decimal grossInput, decimal output, decimal deltaFee, decimal deltaFeeGrowth) 
+        CalculateSwapStep0_1(this PoolV3 pool, decimal currentPrice, decimal prevPrice, decimal activeLiquidity)
+    {
+        var netInput = activeLiquidity * (prevPrice.Inv() - currentPrice.Inv());
+        var grossInput = netInput / (1 - pool.GetFeeTier());
+        var output = activeLiquidity * (currentPrice - prevPrice);
+
+        var deltaFee = grossInput - netInput;
+        var deltaFeeGrowth = deltaFee / activeLiquidity; 
+
+        return (grossInput, output, deltaFee, deltaFeeGrowth);
+    }
 }
