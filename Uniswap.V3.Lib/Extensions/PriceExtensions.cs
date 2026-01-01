@@ -27,7 +27,7 @@ public static class PriceExtensions
     public static decimal ToSqrtPrice(this decimal price) 
         => (decimal)Math.Sqrt((double)price);
 
-    public static (decimal grossInput, decimal output, decimal deltaFee, decimal deltaFeeGrowth) 
+    public static (decimal grossInput, decimal output, decimal deltaFeeLP, decimal deltaFeeGrowth, decimal protocolFee) 
         CalculateSwapStep0_1(this PoolV3 pool, decimal currentPrice, decimal prevPrice, decimal activeLiquidity)
     {
         var netInput = activeLiquidity * (prevPrice.Inv() - currentPrice.Inv());
@@ -35,12 +35,14 @@ public static class PriceExtensions
         var output = activeLiquidity * (currentPrice - prevPrice);
 
         var deltaFee = grossInput - netInput;
-        var deltaFeeGrowth = deltaFee / activeLiquidity; 
+        var protocolFee = deltaFee * pool.ProtocolFee / 256m;
+        var deltaFeeLP = deltaFee - protocolFee; 
+        var deltaFeeGrowth = deltaFeeLP / activeLiquidity; 
 
-        return (grossInput, output, deltaFee, deltaFeeGrowth);
+        return (grossInput, output, deltaFeeLP, deltaFeeGrowth, protocolFee);
     }
 
-    public static (decimal grossInput, decimal output, decimal deltaFee, decimal deltaFeeGrowth)
+    public static (decimal grossInput, decimal output, decimal deltaFeeLP, decimal deltaFeeGrowth, decimal protocolFee)
         CalculateSwapStep1_0(this PoolV3 pool, decimal currentPrice, decimal nextPrice, decimal activeLiquidity)
     {
         var netInput = activeLiquidity * (nextPrice - currentPrice);
@@ -48,8 +50,10 @@ public static class PriceExtensions
         var output = activeLiquidity * (currentPrice.Inv() - nextPrice.Inv());
 
         var deltaFee = grossInput - netInput;
-        var deltaFeeGrowth = deltaFee / activeLiquidity;
+        var protocolFee = deltaFee * pool.ProtocolFee / 256m;
+        var deltaFeeLP = deltaFee - protocolFee;
+        var deltaFeeGrowth = deltaFeeLP / activeLiquidity;
 
-        return (grossInput, output, deltaFee, deltaFeeGrowth);
+        return (grossInput, output, deltaFeeLP, deltaFeeGrowth, protocolFee);
     }
 }

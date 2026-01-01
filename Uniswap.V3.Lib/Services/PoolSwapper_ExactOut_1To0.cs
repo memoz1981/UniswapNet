@@ -23,6 +23,7 @@ public class PoolSwapper_ExactOut_1To0
         var feeGrowth1 = pool.FeeGrowthGlobal[1];
 
         var feeGrowthByTick = new Dictionary<int, (decimal token0, decimal token1)>();
+        decimal[] protocolFees = [pool.ProtocolFees[0], pool.ProtocolFees[1]];
 
         while (true)
         {
@@ -43,12 +44,13 @@ public class PoolSwapper_ExactOut_1To0
                 amountOut -= maxValuesForTick.output;
 
                 currentPrice = nextPrice;
-                feesUsed += maxValuesForTick.deltaFee;
+                feesUsed += maxValuesForTick.deltaFeeLP;
                 feeGrowth1 += maxValuesForTick.deltaFeeGrowth;
                 
                 currentTick = currentTick.Next;
                 feeGrowthByTick[currentTick.TickIndex] = (currentTick.FeeGrowthOutside[0], feeGrowth1);
                 currentActiveLiquidity += currentTick.LiquidityNet;
+                protocolFees[1] += maxValuesForTick.protocolFee;
                 continue;
             }
 
@@ -60,8 +62,9 @@ public class PoolSwapper_ExactOut_1To0
             amountIn += valuesWithinTick.grossInput;
             amountOut -= valuesWithinTick.output;
             currentPrice = sqrtPriceNew;
-            feesUsed += valuesWithinTick.deltaFee;
+            feesUsed += valuesWithinTick.deltaFeeLP;
             feeGrowth1 += valuesWithinTick.deltaFeeGrowth;
+            protocolFees[1] += valuesWithinTick.protocolFee;
             break;
         }
 
@@ -92,13 +95,13 @@ public class PoolSwapper_ExactOut_1To0
         }
 
         CommitValues(pool, currentActiveLiquidity, currentPrice, currentTick, [pool.FeeGrowthGlobal[0], feeGrowth1],
-            feeGrowthByTick);
+            feeGrowthByTick, protocolFees);
 
         return new AcceptedSwapResponse(amountIn, amountOutDelivered);
     }
 
     private void CommitValues(PoolV3 pool, decimal activeLiquidity, decimal sqrtPrice, Tick currentTick, decimal[] deltaFeePool,
-        Dictionary<int, (decimal token0, decimal token1)> deltaFeeGrowthByTick)
+        Dictionary<int, (decimal token0, decimal token1)> deltaFeeGrowthByTick, decimal[] protocolFees)
     {
         pool.ActiveLiquidity = activeLiquidity;
         pool.SqrtPrice = sqrtPrice;
@@ -116,5 +119,7 @@ public class PoolSwapper_ExactOut_1To0
             tick.FeeGrowthOutside[0] = fee.Value.token0;
             tick.FeeGrowthOutside[1] = fee.Value.token1;
         }
+
+        pool.ProtocolFees = [protocolFees[0], protocolFees[1]];
     }
 }

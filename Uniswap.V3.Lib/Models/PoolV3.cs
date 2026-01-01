@@ -4,7 +4,7 @@ namespace Uniswap.V3.Lib.Models;
 
 public record struct PoolV3
 {
-    public PoolV3(Token[] tokens, int feeTier, int tickSpacing)
+    public PoolV3(Token[] tokens, int feeTier, int tickSpacing, int protocolFee)
     {
         Tokens = tokens;
         FeeTier = feeTier;
@@ -17,6 +17,7 @@ public record struct PoolV3
         ProtocolFees = [0, 0];
         ActiveLiquidity = 0;
         _initialized = false;
+        ProtocolFee = protocolFee;
     }
 
     private bool _initialized;
@@ -25,6 +26,8 @@ public record struct PoolV3
     public Token[] Tokens { get; init; }
     public int FeeTier { get; init; }
     public int TickSpacing { get; init; }
+    //actual fee is protocolFee/256... 
+    public int ProtocolFee { get; init; }
 
     //Current state
     public decimal SqrtPrice { get; set; }

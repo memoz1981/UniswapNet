@@ -23,6 +23,7 @@ namespace Uniswap.V3.Lib.Services
             var feeGrowth1 = pool.FeeGrowthGlobal[1];
 
             var feeGrowthByTick = new Dictionary<int, (decimal token0, decimal token1)>();
+            decimal[] protocolFees = [pool.ProtocolFees[0], pool.ProtocolFees[1]];
 
             while (true)
             {
@@ -43,11 +44,12 @@ namespace Uniswap.V3.Lib.Services
                     amountOut += maxValuesForTick.output;
 
                     currentPrice = nextPrice;
-                    feesUsed += maxValuesForTick.deltaFee;
+                    feesUsed += maxValuesForTick.deltaFeeLP;
                     feeGrowth1 += maxValuesForTick.deltaFeeGrowth;
                     currentTick = currentTick.Next;
                     currentActiveLiquidity += currentTick.LiquidityNet;
                     feeGrowthByTick[currentTick.TickIndex] = (currentTick.FeeGrowthOutside[0], feeGrowth1);
+                    protocolFees[1] += maxValuesForTick.protocolFee;
                     continue;
                 }
 
@@ -59,9 +61,10 @@ namespace Uniswap.V3.Lib.Services
                 var valuesWithinTick = pool.CalculateSwapStep1_0(currentPrice, sqrtPriceNew, currentActiveLiquidity);
                 amountOut += valuesWithinTick.output;
                 currentPrice = sqrtPriceNew;
-                feesUsed += valuesWithinTick.deltaFee;
+                feesUsed += valuesWithinTick.deltaFeeLP;
                 feeGrowth1 += valuesWithinTick.deltaFeeGrowth;
                 amountIn -= valuesWithinTick.grossInput;
+                protocolFees[1] += valuesWithinTick.protocolFee;
                 break;
             }
 
@@ -86,13 +89,13 @@ namespace Uniswap.V3.Lib.Services
             }
 
             CommitValues(pool, currentActiveLiquidity, currentPrice, currentTick, [pool.FeeGrowthGlobal[0], feeGrowth1],
-                feeGrowthByTick);
+                feeGrowthByTick, protocolFees);
 
             return new AcceptedSwapResponse(request.swapIn.AmountIn.Value - amountIn, amountOut);
         }
 
         private void CommitValues(PoolV3 pool, decimal activeLiquidity, decimal sqrtPrice, Tick currentTick, decimal[] deltaFeePool,
-            Dictionary<int, (decimal token0, decimal token1)> deltaFeeGrowthByTick)
+        Dictionary<int, (decimal token0, decimal token1)> deltaFeeGrowthByTick, decimal[] protocolFees)
         {
             pool.ActiveLiquidity = activeLiquidity;
             pool.SqrtPrice = sqrtPrice;
@@ -110,6 +113,8 @@ namespace Uniswap.V3.Lib.Services
                 tick.FeeGrowthOutside[0] = fee.Value.token0;
                 tick.FeeGrowthOutside[1] = fee.Value.token1;
             }
+
+            pool.ProtocolFees = [protocolFees[0], protocolFees[1]];
         }
     }
 }
