@@ -1,5 +1,6 @@
 ﻿using Uniswap.V3.Lib.Enums;
 using Uniswap.V3.Lib.Extensions;
+using Uniswap.V3.Lib.Helpers;
 using Uniswap.V3.Lib.Models;
 
 namespace Uniswap.V3.Lib.Services;
@@ -19,6 +20,8 @@ public class PoolBurner
 
         if (position.Liquidity == 0m || request.LiquidityToBurn > position.Liquidity)
             return new RejectedBurnResponse("Position doesn't have enough liquidity.");
+
+        pool.UpdateObservation(TimeSimulator.GetCurrentTimestamp());
 
         var feesFromThisBurn = UpdatePosition(pool, position);
 

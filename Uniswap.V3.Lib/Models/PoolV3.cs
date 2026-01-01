@@ -42,6 +42,12 @@ public record struct PoolV3
     public decimal[] FeeGrowthGlobal { get; set; }
     public decimal[] ProtocolFees { get; set; }
 
+    // TWAP Oracle
+    public Observation[] Observations { get; set; }
+    public ushort ObservationIndex { get; set; }
+    public ushort ObservationCardinality { get; set; }
+    public ushort ObservationCardinalityNext { get; set; }
+
     public void Initialize(decimal initialPrice)
     {
         if (_initialized)
@@ -53,7 +59,26 @@ public record struct PoolV3
         CurrentTick = new Tick(initialPrice.PriceToTick());
         SqrtPrice = initialPrice.ToSqrtPrice();
 
+        // Initialize observations array
+        Observations = new Observation[1];
+        Observations[0] = new Observation(
+            blockTimestamp: GetCurrentTimestamp(),
+            tickCumulative: 0,
+            secondsPerLiquidityCumulative: 0m,
+            initialized: true
+        );
+        ObservationIndex = 0;
+        ObservationCardinality = 1;
+        ObservationCardinalityNext = 1;
+
         _initialized = true;
+    }
+
+    private static uint GetCurrentTimestamp()
+    {
+        // For testing, you can use a simulated timestamp
+        // In production, this would be block.timestamp
+        return (uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     }
 
     public bool Initialized => _initialized; 

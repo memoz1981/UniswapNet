@@ -1,5 +1,6 @@
 ﻿using Uniswap.V3.Lib.Enums;
 using Uniswap.V3.Lib.Extensions;
+using Uniswap.V3.Lib.Helpers;
 using Uniswap.V3.Lib.Models;
 using Uniswap.V3.Lib.Persistence;
 
@@ -19,6 +20,8 @@ public class PoolSwapper
 
         if(!request.swapIn.IsValid || !request.swapOut.IsValid)
             return new RejectedSwapResponse("Swap request not valid.");
+
+        pool.UpdateObservation(TimeSimulator.GetCurrentTimestamp());
 
         var swapType = request.GetSwapTypeOrNull();
 

@@ -1,5 +1,6 @@
 ﻿using Uniswap.V3.Lib.Enums;
 using Uniswap.V3.Lib.Extensions;
+using Uniswap.V3.Lib.Helpers;
 using Uniswap.V3.Lib.Models;
 
 namespace Uniswap.V3.Lib.Services;
@@ -19,6 +20,8 @@ public class PoolMinter
 
         if (request.PriceMax <= request.PriceMin)
             return new RejectedMintResponse("Mint request price min higher than or equal to price max.");
+
+        pool.UpdateObservation(TimeSimulator.GetCurrentTimestamp());
 
         var tickMin = request.PriceMin.PriceToTick().AlignTickToSpacing(pool.TickSpacing);
         var tickMax = request.PriceMax.PriceToTick().AlignTickToSpacing(pool.TickSpacing);
