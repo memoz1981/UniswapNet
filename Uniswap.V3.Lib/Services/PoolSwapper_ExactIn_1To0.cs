@@ -1,5 +1,6 @@
 ﻿using Uniswap.V3.Lib.Extensions;
 using Uniswap.V3.Lib.Models;
+using Uniswap.V3.Lib.Persistence;
 
 namespace Uniswap.V3.Lib.Services
 {
@@ -69,6 +70,22 @@ namespace Uniswap.V3.Lib.Services
             if (amountOut < request.swapIn.AmountOutMinimum)
                 return new RejectedSwapResponse($"Specified amount out could not be received: " +
                     $"specified {request.swapIn.AmountOutMinimum}, achieved: {amountOut}");
+
+            if (request.recipient is not null)
+            {
+                if (!request.recipient.CanSuccessfullyReceive)
+                    return new RejectedSwapResponse("Recipient cannot accept funds");
+
+                request.recipient.Receive(request.swapOut.TokenOut, amountOut);
+            }
+            else
+            {
+                var trader = TraderRepo.Traders.FirstOrDefault(tr => tr.Id == request.traderId);
+
+                if (!trader.CanSuccessfullyReceive)
+                    return new RejectedSwapResponse("Trader cannot accept funds");
+                trader.Receive(request.swapOut.TokenOut, amountOut);
+            }
 
             CommitValues(pool, currentActiveLiquidity, currentPrice, currentTick, [pool.FeeGrowthGlobal[0], feeGrowth1],
                 feeGrowthByTick);

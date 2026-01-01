@@ -1,6 +1,7 @@
 ﻿using Uniswap.V3.Lib.Enums;
 using Uniswap.V3.Lib.Extensions;
 using Uniswap.V3.Lib.Models;
+using Uniswap.V3.Lib.Persistence;
 
 namespace Uniswap.V3.Lib.Services;
 
@@ -38,6 +39,9 @@ public class PoolSwapper
         if (!pool.TickStates.TryGetTickAtIndex(pool.CurrentTick.TickIndex.AlignTickToSpacing(pool.TickSpacing),
             out var currentTick))
             return new RejectedSwapResponse("Pool doesn't have any active positions.");
+
+        if(TraderRepo.Traders.FirstOrDefault(tr => tr.Id == request.traderId) is null)
+            return new RejectedSwapResponse("Invalid trader...");
 
         return (swapType, swapDirection) switch
         {

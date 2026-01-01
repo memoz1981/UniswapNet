@@ -1,5 +1,6 @@
 ﻿using Uniswap.V3.Lib.Extensions;
 using Uniswap.V3.Lib.Models;
+using Uniswap.V3.Lib.Persistence;
 
 namespace Uniswap.V3.Lib.Services;
 
@@ -69,18 +70,36 @@ public class PoolSwapper_ExactOut_1To0
             break;
         }
 
+        var amountOutDelivered = request.swapOut.AmountOut.Value - amountOut;
+
         if (amountIn > request.swapOut.AmountInMaximum)
             return new RejectedSwapResponse($"Used more than minimum inputs " +
                 $"specified {request.swapOut.AmountInMaximum}, achieved: {amountIn}");
 
         if (!request.swapOut.TokenOut.IsZero(amountOut))
             return new RejectedSwapResponse($"Specified amount out could not be sent: " +
-                $"specified {request.swapOut.AmountInMaximum}, achieved: {amountIn}");
+                $"specified {request.swapOut.AmountOut}, achieved: {amountOutDelivered}");
+
+        if (request.recipient is not null)
+        {
+            if (!request.recipient.CanSuccessfullyReceive)
+                return new RejectedSwapResponse("Recipient cannot accept funds");
+
+            request.recipient.Receive(request.swapOut.TokenOut, amountOutDelivered);
+        }
+        else
+        {
+            var trader = TraderRepo.Traders.FirstOrDefault(tr => tr.Id == request.traderId);
+
+            if (!trader.CanSuccessfullyReceive)
+                return new RejectedSwapResponse("Trader cannot accept funds");
+            trader.Receive(request.swapOut.TokenOut, amountOutDelivered);
+        }
 
         CommitValues(pool, currentActiveLiquidity, currentPrice, currentTick, [pool.FeeGrowthGlobal[0], feeGrowth1],
             feeGrowthByTick);
 
-        return new AcceptedSwapResponse(amountIn, request.swapOut.AmountOut.Value - amountOut);
+        return new AcceptedSwapResponse(amountIn, amountOutDelivered);
     }
 
     private void CommitValues(PoolV3 pool, decimal activeLiquidity, decimal sqrtPrice, Tick currentTick, decimal[] deltaFeePool,

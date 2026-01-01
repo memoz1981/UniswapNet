@@ -80,14 +80,6 @@ public class Trader
         errorMessage = string.Empty;
 
         Holdings[swapIn.TokenIn] -= acceptedResponse.AmountInUsed;
-
-        if (recipient is not null)
-            return;
-
-        if (!Holdings.ContainsKey(swapOut.TokenOut))
-            Holdings[swapOut.TokenOut] = 0m;
-
-        Holdings[swapOut.TokenOut] += acceptedResponse.AmountOutReceived;
     }
 
     public bool Receive(Token token, decimal amount)
