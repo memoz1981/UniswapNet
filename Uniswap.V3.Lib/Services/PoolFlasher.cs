@@ -21,8 +21,8 @@ public class PoolFlasher
             return new RejectedFlashResponse($"Insufficient token1: requested {request.Amount1}, available {balancesBefore[1]}");
 
         // Calculate fees (using pool's fee tier)
-        var fee0 = Math.Floor(request.Amount0 * pool.FeeTier / 1_000_000m);
-        var fee1 = Math.Floor(request.Amount1 * pool.FeeTier / 1_000_000m);
+        var fee0 = Math.Floor(request.Amount0 * pool.GetFeeTier());
+        var fee1 = Math.Floor(request.Amount1 * pool.GetFeeTier());
 
         // Execute callback (borrower does their thing)
         // In real implementation, callback would execute here
